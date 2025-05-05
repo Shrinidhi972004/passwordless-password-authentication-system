@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Login</title>
+    <style>
+        body { font-family: Arial; max-width: 400px; margin: 50px auto; text-align: center; }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+<h2>Login</h2>
+<input type="text" id="username" placeholder="Username" />
+<button id="loginBtn">Login</button>
+
+<script>
+async function pingServer() {
+    await fetch('/ping', { cache: 'no-store' });
+    console.log('✅ Server awake');
+}
+
+document.getElementById('loginBtn').addEventListener('click', async () => {
+    const username = document.getElementById('username').value.trim();
+    if (!username) return alert('Enter username');
+
+    try {
+        await pingServer();
+        const res = await fetch('/loginRequest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        if (!res.ok) return alert('Login request failed');
+
+        const options = await res.json();
+
+        const cred = await navigator.credentials.get({
+            publicKey: {
+                ...options,
+                challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)).buffer,
+                allowCredentials: options.allowCredentials.map(cred => ({
+                    id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer,
+                    type: cred.type
+                }))
+            }
+        });
+
+        const response = {
+            rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
+            type: cred.type,
+            response: {
+                clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))),
+                authenticatorData: btoa(String.fromCharCode(...new Uint8Array(cred.response.authenticatorData))),
+                signature: btoa(String.fromCharCode(...new Uint8Array(cred.response.signature))),
+                userHandle: cred.response.userHandle ? btoa(String.fromCharCode(...new Uint8Array(cred.response.userHandle))) : null
+            }
+        };
+
+        const loginRes = await fetch('/loginResponse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assertionResponse: response })
+        });
+
+        if (loginRes.ok) {
+            alert('✅ Login successful!');
+            window.location.href = '/dashboard';
+        } else {
+            alert('❌ Login failed');
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+</body>
+</html>

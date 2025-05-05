@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Register</title>
+    <style>
+        body { font-family: Arial; max-width: 400px; margin: 50px auto; text-align: center; }
+        input, button { width: 100%; padding: 10px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+<h2>Register</h2>
+<input type="text" id="username" placeholder="Choose username" />
+<button id="registerBtn">Register</button>
+
+<script>
+async function pingServer() {
+    await fetch('/ping', { cache: 'no-store' });
+    console.log('✅ Server awake');
+}
+
+document.getElementById('registerBtn').addEventListener('click', async () => {
+    const username = document.getElementById('username').value.trim();
+    if (!username) return alert('Enter username');
+
+    try {
+        await pingServer();
+        const res = await fetch('/registerRequest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username })
+        });
+
+        if (!res.ok) return alert('Register request failed');
+
+        const options = await res.json();
+
+        const cred = await navigator.credentials.create({
+            publicKey: {
+                ...options,
+                challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)).buffer,
+                user: {
+                    ...options.user,
+                    id: Uint8Array.from(atob(options.user.id), c => c.charCodeAt(0)).buffer
+                }
+            }
+        });
+
+        const response = {
+            rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
+            type: cred.type,
+            response: {
+                clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))),
+                attestationObject: btoa(String.fromCharCode(...new Uint8Array(cred.response.attestationObject)))
+            }
+        };
+
+        const registerRes = await fetch('/registerResponse', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ attestationResponse: response })
+        });
+
+        if (registerRes.ok) {
+            alert('✅ Registration successful!');
+            window.location.href = '/dashboard';
+        } else {
+            alert('❌ Registration failed');
+        }
+
+    } catch (err) {
+        console.error(err);
+        alert('Error: ' + err.message);
+    }
+});
+</script>
+</body>
+</html>
