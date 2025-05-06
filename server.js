@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const { Fido2Lib } = require('fido2-lib');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 3000; // <-- KEEP this, Render injects process.env.PORT
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -42,11 +42,11 @@ app.use(session({
 
 const fido2 = new Fido2Lib({
     timeout: 300000,
-    rpId: process.env.RP_ID || "localhost",
-    rpName: "Passwordless Demo",
+    rpId: process.env.RP_ID || 'localhost',
+    rpName: 'Passwordless Demo',
     challengeSize: 64,
-    attestation: "none",
-    authenticatorAttachment: "platform"
+    attestation: 'none',
+    authenticatorAttachment: 'platform'
 });
 
 const toArrayBuffer = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
@@ -77,6 +77,7 @@ app.post('/logout', (req, res) => {
     req.session.destroy(() => res.send({ success: true }));
 });
 
+// ✅ Save diary entry
 app.post('/save-diary', async (req, res) => {
     const { title, content } = req.body;
     const username = req.session.username;
@@ -90,6 +91,7 @@ app.post('/save-diary', async (req, res) => {
     res.send({ success: true });
 });
 
+// ✅ Delete diary entry
 app.post('/delete-diary/:id', async (req, res) => {
     const username = req.session.username;
     const entryId = req.params.id;
@@ -103,6 +105,7 @@ app.post('/delete-diary/:id', async (req, res) => {
     res.send({ success: true });
 });
 
+// ✅ Edit diary entry
 app.post('/edit-diary/:id', async (req, res) => {
     const username = req.session.username;
     const entryId = req.params.id;
@@ -117,6 +120,7 @@ app.post('/edit-diary/:id', async (req, res) => {
     res.send({ success: true });
 });
 
+// ===== FIDO2 registration request =====
 app.post('/registerRequest', async (req, res) => {
     const { username } = req.body;
     console.log("🔍 Register request for:", username);
@@ -143,6 +147,7 @@ app.post('/registerRequest', async (req, res) => {
     res.send(registrationOptions);
 });
 
+// ===== FIDO2 registration response =====
 app.post('/registerResponse', async (req, res) => {
     const { attestationResponse } = req.body;
     const username = req.session.username;
@@ -188,6 +193,7 @@ app.post('/registerResponse', async (req, res) => {
     }
 });
 
+// ===== FIDO2 login request =====
 app.post('/loginRequest', async (req, res) => {
     const { username } = req.body;
     const user = await User.findOne({ username });
@@ -213,6 +219,7 @@ app.post('/loginRequest', async (req, res) => {
     res.send(assertionOptions);
 });
 
+// ===== FIDO2 login response =====
 app.post('/loginResponse', async (req, res) => {
     const { assertionResponse } = req.body;
     const username = req.session.username;

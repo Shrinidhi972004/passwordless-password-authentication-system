@@ -1,14 +1,12 @@
 {
   "name": "passwordless-auth",
   "version": "1.0.0",
-  "description": "",
+  "description": "Passwordless authentication diary app",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node server.js"
   },
-  "keywords": [],
-  "author": "",
+  "author": "Shrinidhi Upadhyaya",
   "license": "ISC",
   "dependencies": {
     "base64url": "^3.0.1",
