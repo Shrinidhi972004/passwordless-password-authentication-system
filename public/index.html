@@ -2,79 +2,298 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Diary - Login</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@300;400;600;700&family=Playfair+Display:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        body { font-family: Arial; max-width: 400px; margin: 50px auto; text-align: center; }
-        input, button { width: 100%; padding: 10px; margin: 10px 0; }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Nunito', sans-serif;
+            background-color: #f9f7f3;
+            color: #333;
+            line-height: 1.6;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-image: linear-gradient(135deg, rgba(240, 240, 240, 0.3) 25%, transparent 25%, transparent 50%, rgba(240, 240, 240, 0.3) 50%, rgba(240, 240, 240, 0.3) 75%, transparent 75%, transparent);
+            background-size: 20px 20px;
+        }
+        
+        .login-container {
+            width: 100%;
+            max-width: 430px;
+            padding: 40px;
+            background-color: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .login-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 5px;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+        }
+        
+        .brand {
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .brand-icon {
+            font-size: 28px;
+            color: #ffc107;
+            margin-right: 15px;
+        }
+        
+        .brand-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 28px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+        
+        h2 {
+            font-family: 'Playfair Display', serif;
+            color: #2c3e50;
+            font-size: 24px;
+            margin-bottom: 25px;
+            font-weight: 700;
+        }
+        
+        .subtitle {
+            color: #777;
+            margin-bottom: 30px;
+            font-size: 15px;
+        }
+        
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #ffc107;
+            box-shadow: 0 0 0 3px rgba(255, 193, 7, 0.2);
+        }
+        
+        input::placeholder {
+            color: #aaa;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #ffc107, #ff9800);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-weight: 700;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(255, 193, 7, 0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        button:hover {
+            background: linear-gradient(135deg, #ffb300, #fb8c00);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 15px rgba(255, 193, 7, 0.4);
+        }
+        
+        button i {
+            margin-right: 10px;
+        }
+        
+        .footer-text {
+            margin-top: 30px;
+            color: #777;
+            font-size: 14px;
+        }
+        
+        .footer-text a {
+            color: #ff9800;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .footer-text a:hover {
+            text-decoration: underline;
+        }
+        
+        .device-note {
+            font-size: 13px;
+            color: #999;
+            margin-top: 25px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .device-note i {
+            margin-right: 8px;
+            color: #ffc107;
+        }
+        
+        @media (max-width: 480px) {
+            .login-container {
+                padding: 30px 20px;
+            }
+            
+            .brand-name {
+                font-size: 24px;
+            }
+            
+            h2 {
+                font-size: 22px;
+                margin-bottom: 20px;
+            }
+        }
     </style>
 </head>
 <body>
-<h2>Login</h2>
-<input type="text" id="username" placeholder="Username" />
-<button id="loginBtn">Login</button>
+    <div class="login-container">
+        <div class="brand">
+            <div class="brand-icon"><i class="fas fa-book-open"></i></div>
+            <div class="brand-name">My Diary</div>
+        </div>
+        
+        <h2>Welcome Back</h2>
+        <p class="subtitle">Sign in to access your personal diary</p>
+        
+        <div class="form-group">
+            <label for="username">Username</label>
+            <div class="input-wrapper">
+                <i class="fas fa-user input-icon"></i>
+                <input type="text" id="username" placeholder="Enter your username" />
+            </div>
+        </div>
+        
+        <button id="loginBtn"><i class="fas fa-lock"></i> Secure Login</button>
+        
+        <p class="footer-text">Don't have an account? <a href="/register">Register</a></p>
+        
+        <div class="device-note">
+            <i class="fas fa-shield-alt"></i>
+            <span>This login uses secure device authentication</span>
+        </div>
+    </div>
 
-<script>
-async function pingServer() {
-    await fetch('/ping', { cache: 'no-store' });
-    console.log('✅ Server awake');
-}
-
-document.getElementById('loginBtn').addEventListener('click', async () => {
-    const username = document.getElementById('username').value.trim();
-    if (!username) return alert('Enter username');
-
-    try {
-        await pingServer();
-        const res = await fetch('/loginRequest', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username })
-        });
-
-        if (!res.ok) return alert('Login request failed');
-
-        const options = await res.json();
-
-        const cred = await navigator.credentials.get({
-            publicKey: {
-                ...options,
-                challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)).buffer,
-                allowCredentials: options.allowCredentials.map(cred => ({
-                    id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer,
-                    type: cred.type
-                }))
-            }
-        });
-
-        const response = {
-            rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
-            type: cred.type,
-            response: {
-                clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))),
-                authenticatorData: btoa(String.fromCharCode(...new Uint8Array(cred.response.authenticatorData))),
-                signature: btoa(String.fromCharCode(...new Uint8Array(cred.response.signature))),
-                userHandle: cred.response.userHandle ? btoa(String.fromCharCode(...new Uint8Array(cred.response.userHandle))) : null
-            }
-        };
-
-        const loginRes = await fetch('/loginResponse', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ assertionResponse: response })
-        });
-
-        if (loginRes.ok) {
-            alert('✅ Login successful!');
-            window.location.href = '/dashboard';
-        } else {
-            alert('❌ Login failed');
-        }
-
-    } catch (err) {
-        console.error(err);
-        alert('Error: ' + err.message);
+    <script>
+    async function pingServer() {
+        await fetch('/ping', { cache: 'no-store' });
+        console.log('✅ Server awake');
     }
-});
-</script>
+
+    document.getElementById('loginBtn').addEventListener('click', async () => {
+        const username = document.getElementById('username').value.trim();
+        if (!username) return alert('Enter username');
+
+        try {
+            await pingServer();
+            const res = await fetch('/loginRequest', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username })
+            });
+
+            if (!res.ok) return alert('Login request failed');
+
+            const options = await res.json();
+
+            const cred = await navigator.credentials.get({
+                publicKey: {
+                    ...options,
+                    challenge: Uint8Array.from(atob(options.challenge), c => c.charCodeAt(0)).buffer,
+                    allowCredentials: options.allowCredentials.map(cred => ({
+                        id: Uint8Array.from(atob(cred.id), c => c.charCodeAt(0)).buffer,
+                        type: cred.type
+                    }))
+                }
+            });
+
+            const response = {
+                rawId: btoa(String.fromCharCode(...new Uint8Array(cred.rawId))),
+                type: cred.type,
+                response: {
+                    clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(cred.response.clientDataJSON))),
+                    authenticatorData: btoa(String.fromCharCode(...new Uint8Array(cred.response.authenticatorData))),
+                    signature: btoa(String.fromCharCode(...new Uint8Array(cred.response.signature))),
+                    userHandle: cred.response.userHandle ? btoa(String.fromCharCode(...new Uint8Array(cred.response.userHandle))) : null
+                }
+            };
+
+            const loginRes = await fetch('/loginResponse', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ assertionResponse: response })
+            });
+
+            if (loginRes.ok) {
+                alert('✅ Login successful!');
+                window.location.href = '/dashboard';
+            } else {
+                alert('❌ Login failed');
+            }
+
+        } catch (err) {
+            console.error(err);
+            alert('Error: ' + err.message);
+        }
+    });
+    </script>
 </body>
 </html>
