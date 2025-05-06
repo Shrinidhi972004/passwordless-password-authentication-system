@@ -7,7 +7,7 @@ const mongoose = require('mongoose');
 const { Fido2Lib } = require('fido2-lib');
 
 const app = express();
-const port = process.env.PORT || 3000; // <-- KEEP this, Render injects process.env.PORT
+const port = process.env.PORT || 10000; // Render requires this
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URI, {
@@ -15,7 +15,10 @@ mongoose.connect(process.env.MONGODB_URI, {
     useUnifiedTopology: true
 })
 .then(() => console.log('✅ Connected to MongoDB Atlas'))
-.catch(err => console.error('❌ MongoDB connection error:', err));
+.catch(err => {
+    console.error('❌ MongoDB connection error:', err);
+    process.exit(1);
+});
 
 // Define Mongoose schema
 const diaryEntrySchema = new mongoose.Schema({
@@ -33,7 +36,7 @@ const userSchema = new mongoose.Schema({
 const User = mongoose.model('User', userSchema);
 
 app.use(bodyParser.json({ limit: '5mb' }));
-app.use(express.static('public'));
+app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
     secret: process.env.SESSION_SECRET || 'supersecretkey',
     resave: false,
@@ -52,11 +55,11 @@ const fido2 = new Fido2Lib({
 const toArrayBuffer = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 
 app.get('/ping', (req, res) => res.send({ success: true }));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public/register.html')));
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
+app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
 app.get('/dashboard', (req, res) => {
     if (!req.session.username) return res.redirect('/');
-    res.sendFile(path.join(__dirname, 'public/dashboard.html'));
+    res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
 app.get('/session-info', async (req, res) => {
@@ -77,11 +80,9 @@ app.post('/logout', (req, res) => {
     req.session.destroy(() => res.send({ success: true }));
 });
 
-// ✅ Save diary entry
 app.post('/save-diary', async (req, res) => {
     const { title, content } = req.body;
     const username = req.session.username;
-
     if (!username) return res.status(401).send({ error: 'Not authenticated' });
 
     const user = await User.findOne({ username });
@@ -91,7 +92,6 @@ app.post('/save-diary', async (req, res) => {
     res.send({ success: true });
 });
 
-// ✅ Delete diary entry
 app.post('/delete-diary/:id', async (req, res) => {
     const username = req.session.username;
     const entryId = req.params.id;
@@ -105,7 +105,6 @@ app.post('/delete-diary/:id', async (req, res) => {
     res.send({ success: true });
 });
 
-// ✅ Edit diary entry
 app.post('/edit-diary/:id', async (req, res) => {
     const username = req.session.username;
     const entryId = req.params.id;
@@ -120,7 +119,7 @@ app.post('/edit-diary/:id', async (req, res) => {
     res.send({ success: true });
 });
 
-// ===== FIDO2 registration request =====
+// ===== Registration Request =====
 app.post('/registerRequest', async (req, res) => {
     const { username } = req.body;
     console.log("🔍 Register request for:", username);
@@ -131,29 +130,26 @@ app.post('/registerRequest', async (req, res) => {
     const userId = userIdBuffer.toString('base64');
 
     let user = await User.findOne({ username });
-    if (!user) {
-        user = new User({ username, id: userId, authenticators: [] });
-        await user.save();
+    if (user) {
+        return res.status(400).send({ error: "User already exists. Please log in." });
     }
+
+    user = new User({ username, id: userId, authenticators: [] });
+    await user.save();
 
     const registrationOptions = await fido2.attestationOptions();
     registrationOptions.user = { id: userId, name: username, displayName: username };
     registrationOptions.challenge = Buffer.from(registrationOptions.challenge).toString('base64');
 
-    req.session.username = username;
     req.session.challenge = registrationOptions.challenge;
 
-    console.log("✅ Sent registration options for:", username);
     res.send(registrationOptions);
 });
 
-// ===== FIDO2 registration response =====
 app.post('/registerResponse', async (req, res) => {
     const { attestationResponse } = req.body;
     const username = req.session.username;
     const expectedChallenge = req.session.challenge;
-
-    console.log(`🔍 Processing registerResponse for: ${username}`);
 
     try {
         const rawIdBuf = Buffer.from(attestationResponse.rawId, 'base64');
@@ -169,7 +165,7 @@ app.post('/registerResponse', async (req, res) => {
 
         const attestationExpectations = {
             challenge: expectedChallenge,
-            origin: process.env.ORIGIN || "http://localhost:3000",
+            origin: process.env.ORIGIN,
             factor: "either"
         };
 
@@ -184,7 +180,6 @@ app.post('/registerResponse', async (req, res) => {
         });
         await user.save();
 
-        console.log("✅ Registration SUCCESS for:", username);
         res.send({ success: true });
 
     } catch (err) {
@@ -193,15 +188,11 @@ app.post('/registerResponse', async (req, res) => {
     }
 });
 
-// ===== FIDO2 login request =====
 app.post('/loginRequest', async (req, res) => {
     const { username } = req.body;
     const user = await User.findOne({ username });
 
-    console.log("🔍 Login request for:", username);
-
     if (!user || !user.authenticators.length) {
-        console.error("❌ User not found or no registered devices:", username);
         return res.status(400).send({ error: "User not found or no registered devices" });
     }
 
@@ -215,28 +206,18 @@ app.post('/loginRequest', async (req, res) => {
     req.session.username = username;
     req.session.challenge = assertionOptions.challenge;
 
-    console.log("✅ Sent login options for:", username);
     res.send(assertionOptions);
 });
 
-// ===== FIDO2 login response =====
 app.post('/loginResponse', async (req, res) => {
     const { assertionResponse } = req.body;
     const username = req.session.username;
     const expectedChallenge = req.session.challenge;
     const user = await User.findOne({ username });
 
-    console.log(`🔍 Processing loginResponse for: ${username}`);
-
-    if (!user) {
-        console.error("❌ User not found:", username);
-        return res.status(400).send({ error: "User not found" });
-    }
-
     try {
         const rawIdBuf = Buffer.from(assertionResponse.rawId, 'base64');
         const matchingAuth = user.authenticators.find(auth => auth.credId === assertionResponse.rawId);
-
         if (!matchingAuth) throw new Error("No matching authenticator found");
 
         const processedAssertion = {
@@ -253,7 +234,7 @@ app.post('/loginResponse', async (req, res) => {
 
         const assertionExpectations = {
             challenge: expectedChallenge,
-            origin: process.env.ORIGIN || "http://localhost:3000",
+            origin: process.env.ORIGIN,
             factor: "either",
             publicKey: matchingAuth.publicKey,
             prevCounter: matchingAuth.counter,
@@ -266,7 +247,6 @@ app.post('/loginResponse', async (req, res) => {
         user.lastLogin = new Date().toISOString();
         await user.save();
 
-        console.log("✅ Login SUCCESS for:", username);
         res.send({ success: true });
 
     } catch (err) {
@@ -275,6 +255,7 @@ app.post('/loginResponse', async (req, res) => {
     }
 });
 
+// 🚀 Start server
 app.listen(port, '0.0.0.0', () => {
-    console.log(`✅ Server running at http://0.0.0.0:${port}`);
+    console.log(`✅ Server running on port ${port}`);
 });
