@@ -41,7 +41,7 @@ app.use(session({
 }));
 
 const fido2 = new Fido2Lib({
-    timeout: 300000,
+    timeout: 1200000,
     rpId: process.env.RP_ID || 'localhost',
     rpName: 'Passwordless Demo',
     challengeSize: 64,
