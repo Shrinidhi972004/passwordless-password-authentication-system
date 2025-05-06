@@ -7,20 +7,17 @@ const mongoose = require('mongoose');
 const { Fido2Lib } = require('fido2-lib');
 
 const app = express();
-const port = process.env.PORT || 10000; // Render requires this
+const port = process.env.PORT || 10000;
 
 // Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true
-})
-.then(() => console.log('✅ Connected to MongoDB Atlas'))
-.catch(err => {
-    console.error('❌ MongoDB connection error:', err);
-    process.exit(1);
-});
+mongoose.connect(process.env.MONGODB_URI)
+    .then(() => console.log('✅ Connected to MongoDB Atlas'))
+    .catch(err => {
+        console.error('❌ MongoDB connection error:', err);
+        process.exit(1);
+    });
 
-// Define Mongoose schema
+// Mongoose schemas
 const diaryEntrySchema = new mongoose.Schema({
     title: String,
     content: String,
@@ -55,10 +52,21 @@ const fido2 = new Fido2Lib({
 const toArrayBuffer = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength);
 
 app.get('/ping', (req, res) => res.send({ success: true }));
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
-app.get('/register', (req, res) => res.sendFile(path.join(__dirname, 'public', 'register.html')));
+
+app.get('/', (req, res) => {
+    console.log('➡ Serving index.html');
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
+app.get('/register', (req, res) => {
+    console.log('➡ Serving register.html');
+    res.sendFile(path.join(__dirname, 'public', 'register.html'));
+});
 app.get('/dashboard', (req, res) => {
-    if (!req.session.username) return res.redirect('/');
+    if (!req.session.username) {
+        console.log('⚠ Access to dashboard blocked — no session');
+        return res.redirect('/');
+    }
+    console.log(`➡ Serving dashboard for user: ${req.session.username}`);
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
@@ -77,31 +85,40 @@ app.get('/session-info', async (req, res) => {
 });
 
 app.post('/logout', (req, res) => {
+    console.log(`🔒 User logged out: ${req.session.username}`);
     req.session.destroy(() => res.send({ success: true }));
 });
 
 app.post('/save-diary', async (req, res) => {
     const { title, content } = req.body;
     const username = req.session.username;
-    if (!username) return res.status(401).send({ error: 'Not authenticated' });
+    if (!username) {
+        console.log('⚠ Attempt to save diary without session');
+        return res.status(401).send({ error: 'Not authenticated' });
+    }
 
     const user = await User.findOne({ username });
     user.diary.push({ title, content });
     await user.save();
 
+    console.log(`📝 Saved diary entry for ${username}`);
     res.send({ success: true });
 });
 
 app.post('/delete-diary/:id', async (req, res) => {
     const username = req.session.username;
     const entryId = req.params.id;
-    if (!username) return res.status(401).send({ error: 'Not authenticated' });
+    if (!username) {
+        console.log('⚠ Attempt to delete diary without session');
+        return res.status(401).send({ error: 'Not authenticated' });
+    }
 
     await User.findOneAndUpdate(
         { username },
         { $pull: { diary: { _id: entryId } } }
     );
 
+    console.log(`🗑 Deleted diary entry ${entryId} for ${username}`);
     res.send({ success: true });
 });
 
@@ -109,20 +126,23 @@ app.post('/edit-diary/:id', async (req, res) => {
     const username = req.session.username;
     const entryId = req.params.id;
     const { title, content } = req.body;
-    if (!username) return res.status(401).send({ error: 'Not authenticated' });
+    if (!username) {
+        console.log('⚠ Attempt to edit diary without session');
+        return res.status(401).send({ error: 'Not authenticated' });
+    }
 
     await User.findOneAndUpdate(
         { username, 'diary._id': entryId },
         { $set: { 'diary.$.title': title, 'diary.$.content': content } }
     );
 
+    console.log(`✏️ Edited diary entry ${entryId} for ${username}`);
     res.send({ success: true });
 });
 
-// ===== Registration Request =====
 app.post('/registerRequest', async (req, res) => {
     const { username } = req.body;
-    console.log("🔍 Register request for:", username);
+    console.log(`🔍 Register request for: ${username}`);
 
     if (!username) return res.status(400).send({ error: "Username required" });
 
@@ -131,6 +151,7 @@ app.post('/registerRequest', async (req, res) => {
 
     let user = await User.findOne({ username });
     if (user) {
+        console.log(`⚠ Registration blocked — user already exists: ${username}`);
         return res.status(400).send({ error: "User already exists. Please log in." });
     }
 
@@ -143,13 +164,14 @@ app.post('/registerRequest', async (req, res) => {
 
     req.session.challenge = registrationOptions.challenge;
 
+    console.log(`✅ Sent registration options to ${username}`);
     res.send(registrationOptions);
 });
 
 app.post('/registerResponse', async (req, res) => {
     const { attestationResponse } = req.body;
-    const username = req.session.username;
     const expectedChallenge = req.session.challenge;
+    const username = req.body.username;
 
     try {
         const rawIdBuf = Buffer.from(attestationResponse.rawId, 'base64');
@@ -180,10 +202,11 @@ app.post('/registerResponse', async (req, res) => {
         });
         await user.save();
 
+        console.log(`✅ Registration SUCCESS for: ${username}`);
         res.send({ success: true });
 
     } catch (err) {
-        console.error("❌ Registration FAILED:", err);
+        console.error(`❌ Registration FAILED for ${username}:`, err);
         res.status(400).send({ error: "Attestation verification failed", details: err.message });
     }
 });
@@ -193,6 +216,7 @@ app.post('/loginRequest', async (req, res) => {
     const user = await User.findOne({ username });
 
     if (!user || !user.authenticators.length) {
+        console.log(`❌ Login request failed — user not found or no devices: ${username}`);
         return res.status(400).send({ error: "User not found or no registered devices" });
     }
 
@@ -206,6 +230,7 @@ app.post('/loginRequest', async (req, res) => {
     req.session.username = username;
     req.session.challenge = assertionOptions.challenge;
 
+    console.log(`✅ Sent login options to ${username}`);
     res.send(assertionOptions);
 });
 
@@ -247,15 +272,15 @@ app.post('/loginResponse', async (req, res) => {
         user.lastLogin = new Date().toISOString();
         await user.save();
 
+        console.log(`✅ Login SUCCESS for: ${username}`);
         res.send({ success: true });
 
     } catch (err) {
-        console.error("❌ Login FAILED:", err);
+        console.error(`❌ Login FAILED for ${username}:`, err);
         res.status(400).send({ error: "Assertion verification failed", details: err.message });
     }
 });
 
-// 🚀 Start server
 app.listen(port, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${port}`);
 });
