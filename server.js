@@ -39,7 +39,7 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: {
-        sameSite: 'lax' // ✅ Helps keep session cookies
+        sameSite: 'lax'
     }
 }));
 
@@ -56,17 +56,12 @@ const toArrayBuffer = (buf) => buf.buffer.slice(buf.byteOffset, buf.byteOffset +
 
 app.get('/ping', (req, res) => res.send({ success: true }));
 
-// Serve pages
 app.get('/', (req, res) => {
     console.log('➡ Serving index.html');
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 app.get('/register', (req, res) => {
-    if (!req.session.username) {
-        console.log('⚠ Access to /register blocked — user not logged in');
-        return res.redirect('/');
-    }
-    console.log(`➡ Serving register.html for ${req.session.username}`);
+    console.log('➡ Serving register.html');
     res.sendFile(path.join(__dirname, 'public', 'register.html'));
 });
 app.get('/dashboard', (req, res) => {
@@ -78,7 +73,6 @@ app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// Session info
 app.get('/session-info', async (req, res) => {
     if (!req.session.username) return res.status(401).send({ error: 'Not logged in' });
     const user = await User.findOne({ username: req.session.username });
@@ -97,13 +91,11 @@ app.get('/session-info', async (req, res) => {
     });
 });
 
-// Logout
 app.post('/logout', (req, res) => {
     console.log(`🔒 User logged out: ${req.session.username}`);
     req.session.destroy(() => res.send({ success: true }));
 });
 
-// Diary endpoints (same as before)
 app.post('/save-diary', async (req, res) => {
     const { title, content } = req.body;
     const username = req.session.username;
@@ -147,23 +139,34 @@ app.post('/edit-diary/:id', async (req, res) => {
     res.send({ success: true });
 });
 
-// Registration (only allows logged-in users to register new devices)
+// ✅ UPDATED: Register request accepts username from frontend
 app.post('/registerRequest', async (req, res) => {
-    const username = req.session.username;
+    const { username } = req.body;
+    console.log(`🔍 Register request for: ${username}`);
+
     if (!username) {
-        console.log('❌ RegisterRequest blocked (not logged in)');
-        return res.status(401).send({ error: 'Not logged in' });
+        return res.status(400).send({ error: "Username is required" });
     }
-    console.log(`🔍 RegisterRequest for: ${username}`);
-    const user = await User.findOne({ username });
+
+    const userIdBuffer = Buffer.from(username, 'utf8');
+    const userId = userIdBuffer.toString('base64');
+
+    let user = await User.findOne({ username });
     if (!user) {
-        console.log(`❌ No user found in DB for ${username}`);
-        return res.status(400).send({ error: 'User not found' });
+        // New user: create in DB
+        user = new User({ username, id: userId, authenticators: [] });
+        await user.save();
+        console.log(`✅ Created new user: ${username}`);
     }
+
+    req.session.username = username; // ✅ Save to session for later steps
+
     const registrationOptions = await fido2.attestationOptions();
-    registrationOptions.user = { id: user.id, name: username, displayName: username };
+    registrationOptions.user = { id: userId, name: username, displayName: username };
     registrationOptions.challenge = Buffer.from(registrationOptions.challenge).toString('base64');
+
     req.session.challenge = registrationOptions.challenge;
+
     console.log(`✅ Sent registration options to ${username}`);
     res.send(registrationOptions);
 });
@@ -213,7 +216,6 @@ app.post('/registerResponse', async (req, res) => {
     }
 });
 
-// Login
 app.post('/loginRequest', async (req, res) => {
     const { username } = req.body;
     const user = await User.findOne({ username });
@@ -232,6 +234,7 @@ app.post('/loginRequest', async (req, res) => {
     console.log(`✅ Sent login options to ${username}`);
     res.send(assertionOptions);
 });
+
 app.post('/loginResponse', async (req, res) => {
     const { assertionResponse } = req.body;
     const username = req.session.username;
@@ -276,7 +279,6 @@ app.post('/loginResponse', async (req, res) => {
     }
 });
 
-// Start the server
 app.listen(port, '0.0.0.0', () => {
     console.log(`✅ Server running on port ${port}`);
 });

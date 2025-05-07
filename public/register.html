@@ -83,6 +83,51 @@
             font-size: 15px;
         }
         
+        .form-group {
+            margin-bottom: 25px;
+            text-align: left;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+            font-size: 14px;
+        }
+        
+        .input-wrapper {
+            position: relative;
+        }
+        
+        .input-icon {
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #aaa;
+        }
+        
+        input {
+            width: 100%;
+            padding: 14px 15px 14px 45px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-family: 'Nunito', sans-serif;
+            font-size: 15px;
+            transition: all 0.3s ease;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.2);
+        }
+        
+        input::placeholder {
+            color: #aaa;
+        }
+        
         button {
             width: 100%;
             padding: 14px;
@@ -213,8 +258,16 @@
             <div class="brand-name">My Diary</div>
         </div>
         
-        <h2>Register New Device</h2>
-        <p class="subtitle">Secure your account with a trusted device</p>
+        <h2>Create Account</h2>
+        <p class="subtitle">Start your personal diary journey</p>
+        
+        <div class="form-group">
+            <label for="username">Choose Username</label>
+            <div class="input-wrapper">
+                <i class="fas fa-user input-icon"></i>
+                <input type="text" id="username" placeholder="Enter a username" />
+            </div>
+        </div>
         
         <button id="registerBtn"><i class="fas fa-user-plus"></i> Register Device</button>
         
@@ -225,7 +278,7 @@
             <div class="steps">
                 <div class="step">
                     <div class="step-icon">1</div>
-                    <div class="step-text">Log In First</div>
+                    <div class="step-text">Enter Username</div>
                 </div>
                 <div class="step">
                     <div class="step-icon">2</div>
@@ -246,12 +299,19 @@
     }
 
     document.getElementById('registerBtn').addEventListener('click', async () => {
+        const username = document.getElementById('username').value.trim();
+        if (!username) {
+            alert('Please enter a username');
+            return;
+        }
+
         try {
             await pingServer();
             const res = await fetch('/registerRequest', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include'  // ✅ keeps session cookie
+                credentials: 'include',
+                body: JSON.stringify({ username })
             });
 
             if (!res.ok) return alert('Register request failed');
@@ -281,7 +341,7 @@
             const registerRes = await fetch('/registerResponse', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                credentials: 'include',  // ✅ keeps session cookie
+                credentials: 'include',
                 body: JSON.stringify({ attestationResponse: response })
             });
 
