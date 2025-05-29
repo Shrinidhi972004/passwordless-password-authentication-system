@@ -85,7 +85,6 @@ Build passwordless-password-authentication-system from the source and install de
 ## Return
 
 
-- If you want to add contributors, license, demo link, or anything else, just ask!
 
 
 
