@@ -85,12 +85,6 @@ Build passwordless-password-authentication-system from the source and install de
 ## Return
 
 
----
-
-**Notes for you:**
-- Replace `{test_framework}` with your actual testing framework, e.g. `Jest`, `Mocha`, etc.
-- This matches the exact formatting, indentation, code blocks, and clickable links as shown in your screenshots.
-- The “Return” link will work perfectly on GitHub.
 - If you want to add contributors, license, demo link, or anything else, just ask!
 
 
