@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  mongo-dev:
+    image: mongo:6.0
+    container_name: mongo-dev
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: root
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  passwordless-auth:
+    build: .
+    container_name: passwordless-auth
+    restart: always
+    depends_on:
+      - mongo-dev
+    environment:
+      MONGODB_URI: mongodb://root:root@mongo-dev:27017
+      SESSION_SECRET: supersecretkey
+      RP_ID: localhost
+      ORIGIN: http://localhost:10000
+      PORT: 10000
+    ports:
+      - "10000:10000"
+
+volumes:
+  mongo_data:
