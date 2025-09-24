@@ -1,0 +1,13 @@
+# k8s/app-service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: passwordless-app
+  namespace: passwordless-auth
+spec:
+  type: ClusterIP               # Internal service
+  ports:
+    - port: 10000
+      targetPort: 10000
+  selector:
+    app: passwordless-app       # Selects pods labeled app=passwordless-app

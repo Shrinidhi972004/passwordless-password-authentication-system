@@ -1,0 +1,52 @@
+# k8s/app-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: passwordless-app
+  namespace: passwordless-auth
+spec:
+  replicas: 2                     # Run 2 pods for redundancy
+  selector:
+    matchLabels:
+      app: passwordless-app
+  template:
+    metadata:
+      labels:
+        app: passwordless-app
+    spec:
+      containers:
+      - name: passwordless-app
+        image: shrinidhiupadhyaya/passwordless-password-authentication-system-passwordless-auth:latest  # Replace with your DockerHub image
+        ports:
+        - containerPort: 10000       # App runs on 10000
+        resources:                   # Resource requests/limits for HPA
+          requests:
+            cpu: "200m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        env:                         # App environment variables
+        - name: MONGO_USER
+          valueFrom:
+            secretKeyRef:
+              name: passwordless-secrets
+              key: MONGO_USER
+        - name: MONGO_PASS
+          valueFrom:
+            secretKeyRef:
+              name: passwordless-secrets
+              key: MONGO_PASS
+        - name: MONGODB_URI
+          value: mongodb://$(MONGO_USER):$(MONGO_PASS)@mongo:27017
+        - name: SESSION_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: passwordless-secrets
+              key: SESSION_SECRET
+        - name: RP_ID
+          value: localhost
+        - name: ORIGIN
+          value: http://localhost:10000
+        - name: PORT
+          value: "10000"
