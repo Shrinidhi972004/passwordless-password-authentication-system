@@ -1,4 +1,3 @@
-# k8s/ingress.yaml
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -9,7 +8,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-  - host: passwordless.local       # Custom domain
+  - host: passwordless.local
     http:
       paths:
       - path: /

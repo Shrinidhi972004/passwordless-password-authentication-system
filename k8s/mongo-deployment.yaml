@@ -5,24 +5,24 @@ metadata:
   name: mongo
   namespace: passwordless-auth
 spec:
-  replicas: 1                  
+  replicas: 1
   selector:
     matchLabels:
-      app: mongo                
+      app: mongo
   template:
     metadata:
       labels:
-        app: mongo              
+        app: mongo
     spec:
       containers:
       - name: mongo
-        image: mongo:6.0       
+        image: mongo:6.0
         ports:
-        - containerPort: 27017  
-        env:                   
+        - containerPort: 27017
+        env:
         - name: MONGO_INITDB_ROOT_USERNAME
           valueFrom:
-            secretKeyRef:        
+            secretKeyRef:
               name: passwordless-secrets
               key: MONGO_USER
         - name: MONGO_INITDB_ROOT_PASSWORD
@@ -30,10 +30,10 @@ spec:
             secretKeyRef:
               name: passwordless-secrets
               key: MONGO_PASS
-        volumeMounts:          
+        volumeMounts:
         - name: mongo-storage
-          mountPath: /data/db    
+          mountPath: /data/db
       volumes:
       - name: mongo-storage
-        persistentVolumeClaim:   
+        persistentVolumeClaim:
           claimName: mongo-pvc
